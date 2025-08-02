@@ -7,6 +7,7 @@ import css from "./NotesPage.module.css";
 import NoteList from "@/components/NoteList/NoteList";
 import { fetchNotes } from "@/lib/api";
 import type { Note } from "../../types/note";
+import type { FetchNotesResponse } from "@/lib/api";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import Modal from "@/components/Modal/Modal";
 import Pagination from "@/components/Pagination/Pagination";
@@ -15,9 +16,19 @@ import Loader from "@/components/Loader/Loader";
 import ErrorMessage from "@/components/ErrorMessage/ErrorMessage";
 import toast, { Toaster } from "react-hot-toast";
 
-export default function App() {
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+type NotesClientProps = {
+  initialData: FetchNotesResponse;
+  initialPage: number;
+  initialSearch: string;
+};
+
+export default function NotesClient({
+  initialData,
+  initialPage,
+  initialSearch,
+}: NotesClientProps) {
+  const [search, setSearch] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState(initialPage);
 
   const handleSearchChange = useDebouncedCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +42,10 @@ export default function App() {
     queryKey: ["notes", currentPage, search],
     queryFn: () => fetchNotes(currentPage, 12, search),
     placeholderData: keepPreviousData,
+    initialData:
+      currentPage === initialPage && search === initialSearch
+        ? initialData
+        : undefined,
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,9 +57,10 @@ export default function App() {
 
   useEffect(() => {
     if (isSuccess && !isLoading && notes.length === 0) {
-      toast.error("No movies found for your request.");
+      toast.error("No notes found for your request.");
     }
   }, [isSuccess, isLoading, notes.length]);
+
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
@@ -63,9 +79,7 @@ export default function App() {
       <Toaster position="top-center" />
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
-
       {notes.length > 0 && <NoteList notes={notes} />}
-
       {isModalOpen && (
         <Modal onClose={closeModal}>
           <NoteForm onCloseModal={closeModal} />
